@@ -1,0 +1,45 @@
+#!/usr/bin/env node
+const {resolve} = require('path');
+const {spawn} = require('child_process');
+const AWS = require('aws-sdk');
+const argv = require('yargs').argv;
+const {readFileSync, writeFileSync} = require('fs');
+const pkg = require('../package.json');
+
+require('../util/monkeypatch');
+
+const DEPLOY_DIR = resolve(__dirname, '../packages/deployment');
+
+const s3 = new AWS.S3({region: 'us-east-1'});
+
+async function terraform() {
+  await spawn('terraform', process.argv.slice(3), {cwd: DEPLOY_DIR, stdio: 'inherit'}).stdout;
+}
+
+const BACKEND_CONFIG_PATH = `apps/${pkg.name}/stage/${argv.stage || 'dev'}`;
+
+async function downloadSecrets() {
+  const response = await s3.getObject({
+    Bucket: pkg.config['secrets-bucket'],
+    Key: `${BACKEND_CONFIG_PATH}/backend.tf`,
+  }).promise();
+  writeFileSync(resolve(DEPLOY_DIR, 'backend.tf'), response.Body);
+}
+
+async function uploadSecrets() {
+  const backendTf = readFileSync(resolve(DEPLOY_DIR, 'backend.tf'));
+  await s3.putObject({
+    Bucket: pkg.config['secrets-bucket'],
+    Key: `${BACKEND_CONFIG_PATH}/backend.tf`,
+    Body: backendTf,
+  }).promise();
+}
+
+const command = process.argv[2];
+
+switch (command) {
+  case 'terraform': terraform(); break;
+  case 'secrets:download': downloadSecrets(); break;
+  case 'secrets:upload': uploadSecrets(); break;
+  default: break;
+}

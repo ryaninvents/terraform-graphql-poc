@@ -1,0 +1,7 @@
+terraform {
+  backend "s3" {
+    bucket = "my-bucket-name"
+    key    = "applications/terraform-graphql-poc/deployments/dev"
+    region = "us-east-2"
+  }
+}

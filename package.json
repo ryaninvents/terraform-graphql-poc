@@ -1,0 +1,19 @@
+{
+  "name": "terraform-graphql-poc",
+  "version": "0.0.0-develop",
+  "description": "Boilerplate for Terraform/API Gateway/Preact/GraphQL project",
+  "main": "index.js",
+  "config": {
+    "secrets-bucket": "rmkennedy-site-secrets"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Ryan Kennedy <me@ryaninvents.com> (https://ryaninvents.com/)",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "aws-sdk": "^2.266.1",
+    "lerna": "^2.11.0",
+    "yargs": "^11.0.0"
+  }
+}
