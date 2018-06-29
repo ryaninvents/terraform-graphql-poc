@@ -13,6 +13,8 @@
   "license": "UNLICENSED",
   "devDependencies": {
     "aws-sdk": "^2.266.1",
+    "eslint": "^5.0.1",
+    "eslint-config-kennship": "^0.1.1",
     "lerna": "^2.11.0",
     "yargs": "^11.0.0"
   }
