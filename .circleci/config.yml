@@ -1,6 +1,13 @@
 version: 2
 
 jobs:
+  noop:
+    docker:
+      - image: circleci/node:8.11
+    steps:
+      - run:
+          name: noop
+          command: 'echo Okay'
   deploy:
     docker:
       - image: circleci/node:8.11
@@ -13,3 +20,9 @@ jobs:
             unzip terraform.zip
             sudo mv terraform /usr/bin/terraform
             terraform -version
+
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      - noop
