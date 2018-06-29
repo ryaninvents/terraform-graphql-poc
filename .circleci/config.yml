@@ -1,13 +1,39 @@
 version: 2
 
 jobs:
-  noop:
+  install:
     docker:
       - image: circleci/node:8.11
     steps:
+      - checkout
       - run:
-          name: noop
-          command: 'echo Okay'
+          name: install
+          command: 'npm install'
+      - persist_to_workspace:
+          root: .
+          paths:
+            - node_modules
+            - packages/*/node_modules
+  test:
+    docker:
+      - image: circleci/node:8.11
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: build
+          command: npm test
+  build:
+    docker:
+      - image: circleci/node:8.11
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: build
+          command: npm run build
   deploy:
     docker:
       - image: circleci/node:8.11
@@ -25,4 +51,6 @@ workflows:
   version: 2
   build_and_test:
     jobs:
-      - noop
+      - install
+      - test
+      - build
