@@ -6,6 +6,8 @@ jobs:
       - image: circleci/node:8.11
     steps:
       - checkout
+      - attach_workspace:
+          at: .
       - run:
           name: install
           command: 'npm install'
@@ -22,7 +24,7 @@ jobs:
       - attach_workspace:
           at: .
       - run:
-          name: build
+          name: test
           command: npm test
   build:
     docker:
