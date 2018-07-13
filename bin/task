@@ -1,45 +1,43 @@
 #!/usr/bin/env node
-const {resolve} = require('path');
-const {spawn} = require('child_process');
-const AWS = require('aws-sdk');
-const yargonaut = require('yargs');
-const {readFileSync, writeFileSync} = require('fs');
-const pkg = require('../package.json');
+const {resolve} = require('path')
+const {spawn} = require('child_process')
+const AWS = require('aws-sdk')
+const yargonaut = require('yargs')
+const {readFileSync, writeFileSync} = require('fs')
+const pkg = require('../package.json')
 
-require('../util/monkeypatch');
+require('../util/monkeypatch')
 
-const DEPLOY_DIR = resolve(__dirname, '../packages/deployment');
+const DEPLOY_DIR = resolve(__dirname, '../packages/deployment')
 
-const s3 = new AWS.S3({region: 'us-east-1'});
+const s3 = new AWS.S3({region: 'us-east-1'})
 
-async function terraform() {
-  await spawn('terraform', process.argv.slice(3), {cwd: DEPLOY_DIR, stdio: 'inherit'}).stdout;
+async function terraform () {
+  await spawn('terraform', process.argv.slice(3), {cwd: DEPLOY_DIR, stdio: 'inherit'}).stdout
 }
 
-const BACKEND_CONFIG_PATH = (argv) => `apps/${pkg.name}/stage/${argv.stage || 'dev'}`;
+const BACKEND_CONFIG_PATH = (argv) => `apps/${pkg.name}/stage/${argv.stage || 'dev'}`
 
-async function downloadSecrets(argv) {
+async function downloadSecrets (argv) {
   const response = await s3.getObject({
     Bucket: pkg.config['secrets-bucket'],
-    Key: `${BACKEND_CONFIG_PATH(argv)}/backend.tf`,
-  }).promise();
-  writeFileSync(resolve(DEPLOY_DIR, 'backend.tf'), response.Body);
+    Key: `${BACKEND_CONFIG_PATH(argv)}/backend.tf`
+  }).promise()
+  writeFileSync(resolve(DEPLOY_DIR, 'backend.tf'), response.Body)
 }
 
-async function uploadSecrets(argv) {
-  const backendTf = readFileSync(resolve(DEPLOY_DIR, 'backend.tf'));
+async function uploadSecrets (argv) {
+  const backendTf = readFileSync(resolve(DEPLOY_DIR, 'backend.tf'))
   await s3.putObject({
     Bucket: pkg.config['secrets-bucket'],
     Key: `${BACKEND_CONFIG_PATH(argv)}/backend.tf`,
-    Body: backendTf,
-  }).promise();
+    Body: backendTf
+  }).promise()
 }
 
-const command = process.argv[2];
-
-yargonaut
+yargonaut // eslint-disable-line no-unused-expressions
   .command('terraform', 'run terraform', (yargs) => yargs, terraform)
   .command('secrets:download', 'download secrets file', (yargs) => yargs, downloadSecrets)
   .command('secrets:upload', 'upload secrets file', (yargs) => yargs, uploadSecrets)
   .help()
-  .argv;
+  .argv
