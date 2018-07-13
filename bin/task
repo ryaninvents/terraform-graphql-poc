@@ -2,7 +2,7 @@
 const {resolve} = require('path');
 const {spawn} = require('child_process');
 const AWS = require('aws-sdk');
-const argv = require('yargs').argv;
+const yargonaut = require('yargs');
 const {readFileSync, writeFileSync} = require('fs');
 const pkg = require('../package.json');
 
@@ -16,30 +16,30 @@ async function terraform() {
   await spawn('terraform', process.argv.slice(3), {cwd: DEPLOY_DIR, stdio: 'inherit'}).stdout;
 }
 
-const BACKEND_CONFIG_PATH = `apps/${pkg.name}/stage/${argv.stage || 'dev'}`;
+const BACKEND_CONFIG_PATH = (argv) => `apps/${pkg.name}/stage/${argv.stage || 'dev'}`;
 
-async function downloadSecrets() {
+async function downloadSecrets(argv) {
   const response = await s3.getObject({
     Bucket: pkg.config['secrets-bucket'],
-    Key: `${BACKEND_CONFIG_PATH}/backend.tf`,
+    Key: `${BACKEND_CONFIG_PATH(argv)}/backend.tf`,
   }).promise();
   writeFileSync(resolve(DEPLOY_DIR, 'backend.tf'), response.Body);
 }
 
-async function uploadSecrets() {
+async function uploadSecrets(argv) {
   const backendTf = readFileSync(resolve(DEPLOY_DIR, 'backend.tf'));
   await s3.putObject({
     Bucket: pkg.config['secrets-bucket'],
-    Key: `${BACKEND_CONFIG_PATH}/backend.tf`,
+    Key: `${BACKEND_CONFIG_PATH(argv)}/backend.tf`,
     Body: backendTf,
   }).promise();
 }
 
 const command = process.argv[2];
 
-switch (command) {
-  case 'terraform': terraform(); break;
-  case 'secrets:download': downloadSecrets(); break;
-  case 'secrets:upload': uploadSecrets(); break;
-  default: break;
-}
+yargonaut
+  .command('terraform', 'run terraform', (yargs) => yargs, terraform)
+  .command('secrets:download', 'download secrets file', (yargs) => yargs, downloadSecrets)
+  .command('secrets:upload', 'upload secrets file', (yargs) => yargs, uploadSecrets)
+  .help()
+  .argv;
