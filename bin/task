@@ -4,9 +4,12 @@ const {spawn} = require('child_process')
 const AWS = require('aws-sdk')
 const yargonaut = require('yargs')
 const {readFileSync, writeFileSync} = require('fs')
+const gulp = require('gulp')
+const zip = require('gulp-zip')
+
 const pkg = require('../package.json')
 
-require('../util/monkeypatch')
+const {promisify} = require('../util/monkeypatch')
 
 const DEPLOY_DIR = resolve(__dirname, '../packages/deployment')
 
@@ -35,9 +38,18 @@ async function uploadSecrets (argv) {
   }).promise()
 }
 
+async function zipLambda () {
+  await promisify(gulp.src(resolve(process.cwd(), 'packages/server/**'), {cwd: process.cwd()})
+    .pipe(zip('server.zip'))
+    .pipe(gulp.dest(resolve(process.cwd(), 'packages/deployment/bundles/'))))
+}
+
+const identity = (yargs) => yargs
+
 yargonaut // eslint-disable-line no-unused-expressions
-  .command('terraform', 'run terraform', (yargs) => yargs, terraform)
-  .command('secrets:download', 'download secrets file', (yargs) => yargs, downloadSecrets)
-  .command('secrets:upload', 'upload secrets file', (yargs) => yargs, uploadSecrets)
+  .command('terraform', 'run terraform', identity, terraform)
+  .command('secrets:download', 'download secrets file', identity, downloadSecrets)
+  .command('secrets:upload', 'upload secrets file', identity, uploadSecrets)
+  .command('lambda:zip', 'bundle lambdas', identity, zipLambda)
   .help()
   .argv
