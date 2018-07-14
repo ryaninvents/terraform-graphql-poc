@@ -1,0 +1,14 @@
+{
+  "name": "terraform-graphql-poc.deployment",
+  "version": "0.0.0-develop",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Ryan Kennedy <me@ryaninvents.com> (https://ryaninvents.com/)",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "terraform-graphql-poc.server": "file:../server"
+  }
+}
