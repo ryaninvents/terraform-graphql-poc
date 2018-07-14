@@ -13,7 +13,8 @@ module.exports = {
     ]
   },
   resolve: {
-    extensions: [ '.tsx', '.ts', '.js' ]
+    mainFields: ['browser', 'main', 'module'],
+    extensions: ['.tsx', '.ts', '.js']
   },
   output: {
     filename: 'index.js',
