@@ -84,3 +84,7 @@ resource "aws_lambda_permission" "apigw_graphiql" {
 output "base_url" {
   value = "${aws_api_gateway_deployment.example.invoke_url}"
 }
+
+output "graphiql_url" {
+  value = "${aws_api_gateway_deployment.example.invoke_url}/graphiql"
+}
