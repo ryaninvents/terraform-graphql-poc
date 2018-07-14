@@ -7,15 +7,15 @@ const typeDefs = `
     hello: String
     now: String
   }
-`;
+`
 
 // Provide resolver functions for your schema fields
 const resolvers = {
   Query: {
     hello: () => 'Hello world!',
     now: () => new Date().toISOString()
-  },
-};
+  }
+}
 
 const schema = makeExecutableSchema({
   typeDefs,
@@ -29,7 +29,7 @@ export const graphiql = server.graphiqlLambda({
 
 console.log('hello')
 
-export function handler (event: Object, context: Object, callback: (error: Error | null, response: Object) => void) {
+export function handler (event, context, callback) {
   const response = {
     statusCode: 200,
     headers: {

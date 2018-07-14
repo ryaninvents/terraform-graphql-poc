@@ -24,14 +24,14 @@ app.get(
   passport.authenticate('auth0', {
     failureRedirect: '/'
   }),
-  function(req, res) {
+  function (req, res) {
     res.redirect('/')
   }
 )
 
-function forRoute(route) {
+function forRoute (route) {
   return {
-    request(request, event, context) {
+    request (request, event, context) {
       request.path = route
     }
   }
