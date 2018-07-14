@@ -49,13 +49,17 @@ async function zipLambda (argv) {
     console.log('Done.')
   }
   console.log('Zipping...')
-  await promisify(
-    merge(
-      gulp.src(resolve(process.cwd(), 'packages/server/package.json'), {cwd: process.cwd()}),
-      gulp.src(resolve(process.cwd(), 'packages/server/dist/**'), {cwd: process.cwd()})
-    )
-      .pipe(zip('server.zip'))
-      .pipe(gulp.dest(resolve(process.cwd(), 'packages/deployment/bundles/'))))
+
+  await Promise.all(['index', 'auth'].map(
+    (bundleName) => promisify(
+      merge(
+        gulp.src(resolve(process.cwd(), 'packages/server/package.json'), {cwd: process.cwd()}),
+        gulp.src(resolve(process.cwd(), `packages/server/dist/${bundleName}/**`), {cwd: process.cwd()})
+      )
+        .pipe(zip(`${bundleName}.zip`))
+        .pipe(gulp.dest(resolve(process.cwd(), 'packages/deployment/bundles/'))))
+  ))
+
   console.log('Done.')
 }
 

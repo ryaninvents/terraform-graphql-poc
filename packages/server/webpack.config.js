@@ -1,7 +1,10 @@
 const path = require('path')
 
 module.exports = {
-  entry: './index.ts',
+  entry: {
+    index: './index.ts',
+    auth: './auth.ts'
+  },
   mode: process.env.NODE_ENV || 'production',
   module: {
     rules: [
@@ -17,7 +20,7 @@ module.exports = {
     extensions: ['.tsx', '.ts', '.js']
   },
   output: {
-    filename: 'index.js',
+    filename: '[name]/index.js',
     path: path.resolve(__dirname, 'dist'),
     libraryTarget: 'commonjs'
   }
