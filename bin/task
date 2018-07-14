@@ -23,20 +23,35 @@ async function terraform () {
 const BACKEND_CONFIG_PATH = (argv) => `apps/${pkg.name}/stage/${argv.stage || 'dev'}`
 
 async function downloadSecrets (argv) {
-  const response = await s3.getObject({
-    Bucket: pkg.config['secrets-bucket'],
-    Key: `${BACKEND_CONFIG_PATH(argv)}/backend.tf`
-  }).promise()
-  writeFileSync(resolve(DEPLOY_DIR, 'backend.tf'), response.Body)
+  const [backendTf, terraformVars] = await Promise.all([
+    s3.getObject({
+      Bucket: pkg.config['secrets-bucket'],
+      Key: `${BACKEND_CONFIG_PATH(argv)}/backend.tf`
+    }).promise(),
+    s3.getObject({
+      Bucket: pkg.config['secrets-bucket'],
+      Key: `${BACKEND_CONFIG_PATH(argv)}/terraform.tfvars`
+    }).promise()
+  ])
+  writeFileSync(resolve(DEPLOY_DIR, 'backend.tf'), backendTf.Body)
+  writeFileSync(resolve(DEPLOY_DIR, 'terraform.tfvars'), terraformVars.Body)
 }
 
 async function uploadSecrets (argv) {
   const backendTf = readFileSync(resolve(DEPLOY_DIR, 'backend.tf'))
-  await s3.putObject({
-    Bucket: pkg.config['secrets-bucket'],
-    Key: `${BACKEND_CONFIG_PATH(argv)}/backend.tf`,
-    Body: backendTf
-  }).promise()
+  const terraformVars = readFileSync(resolve(DEPLOY_DIR, 'terraform.tfvars'))
+  await Promise.all([
+    s3.putObject({
+      Bucket: pkg.config['secrets-bucket'],
+      Key: `${BACKEND_CONFIG_PATH(argv)}/backend.tf`,
+      Body: backendTf
+    }).promise(),
+    s3.putObject({
+      Bucket: pkg.config['secrets-bucket'],
+      Key: `${BACKEND_CONFIG_PATH(argv)}/terraform.tfvars`,
+      Body: terraformVars
+    }).promise()
+  ])
 }
 
 async function zipLambda (argv) {
