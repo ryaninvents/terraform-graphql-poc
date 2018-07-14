@@ -3,9 +3,7 @@
   "version": "0.0.0-develop",
   "description": "",
   "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+  "scripts": {},
   "author": "Ryan Kennedy <me@ryaninvents.com> (https://ryaninvents.com/)",
   "license": "UNLICENSED",
   "devDependencies": {
