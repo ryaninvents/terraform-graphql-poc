@@ -39,11 +39,13 @@ async function uploadSecrets (argv) {
   }).promise()
 }
 
-async function zipLambda () {
-  await spawn('npm', ['run', 'build'], {
-    cwd: resolve(process.cwd(), 'packages/server'),
-    stdio: 'inherit'
-  }).stdout
+async function zipLambda (argv) {
+  if (!argv.skipCompile) {
+    await spawn('npm', ['run', 'build'], {
+      cwd: resolve(process.cwd(), 'packages/server'),
+      stdio: 'inherit'
+    }).stdout
+  }
   await promisify(
     merge(
       gulp.src(resolve(process.cwd(), 'packages/server/package.json'), {cwd: process.cwd()}),
@@ -59,6 +61,16 @@ yargonaut // eslint-disable-line no-unused-expressions
   .command('terraform', 'run terraform', identity, terraform)
   .command('secrets:download', 'download secrets file', identity, downloadSecrets)
   .command('secrets:upload', 'upload secrets file', identity, uploadSecrets)
-  .command('lambda:zip', 'bundle lambdas', identity, zipLambda)
+  .command(
+    'lambda:zip',
+    'bundle lambdas',
+    (yargs) => yargs
+      .option('skip-compile', {
+        type: 'boolean',
+        desc: 'If true, skip TypeScript compilation',
+        default: false
+      }),
+    zipLambda
+  )
   .help()
   .argv
