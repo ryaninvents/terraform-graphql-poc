@@ -1,6 +1,6 @@
 'use strict'
 
-exports.handler = function (event, context, callback) {
+export function handler (event: Object, context: Object, callback: (error: Error | null, response: Object) => void) {
   const response = {
     statusCode: 200,
     headers: {

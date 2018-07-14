@@ -6,6 +6,7 @@ const yargonaut = require('yargs')
 const {readFileSync, writeFileSync} = require('fs')
 const gulp = require('gulp')
 const zip = require('gulp-zip')
+const merge = require('gulp-merge')
 
 const pkg = require('../package.json')
 
@@ -39,9 +40,17 @@ async function uploadSecrets (argv) {
 }
 
 async function zipLambda () {
-  await promisify(gulp.src(resolve(process.cwd(), 'packages/server/**'), {cwd: process.cwd()})
-    .pipe(zip('server.zip'))
-    .pipe(gulp.dest(resolve(process.cwd(), 'packages/deployment/bundles/'))))
+  await spawn('npm', ['run', 'build'], {
+    cwd: resolve(process.cwd(), 'packages/server'),
+    stdio: 'inherit'
+  }).stdout
+  await promisify(
+    merge(
+      gulp.src(resolve(process.cwd(), 'packages/server/package.json'), {cwd: process.cwd()}),
+      gulp.src(resolve(process.cwd(), 'packages/server/dist/**'), {cwd: process.cwd()})
+    )
+      .pipe(zip('server.zip'))
+      .pipe(gulp.dest(resolve(process.cwd(), 'packages/deployment/bundles/'))))
 }
 
 const identity = (yargs) => yargs
