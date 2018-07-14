@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 const {resolve} = require('path')
-const {spawn} = require('child_process')
+const execa = require('execa')
 const AWS = require('aws-sdk')
 const yargonaut = require('yargs')
 const {readFileSync, writeFileSync} = require('fs')
@@ -10,14 +10,14 @@ const merge = require('gulp-merge')
 
 const pkg = require('../package.json')
 
-const {promisify} = require('../util/monkeypatch')
+const {promisify} = require('../util/promisify')
 
 const DEPLOY_DIR = resolve(__dirname, '../packages/deployment')
 
 const s3 = new AWS.S3({region: 'us-east-1'})
 
 async function terraform () {
-  await spawn('terraform', process.argv.slice(3), {cwd: DEPLOY_DIR, stdio: 'inherit'}).stdout
+  await execa('terraform', process.argv.slice(3), {cwd: DEPLOY_DIR, stdio: 'inherit'}).stdout
 }
 
 const BACKEND_CONFIG_PATH = (argv) => `apps/${pkg.name}/stage/${argv.stage || 'dev'}`
@@ -41,11 +41,14 @@ async function uploadSecrets (argv) {
 
 async function zipLambda (argv) {
   if (!argv.skipCompile) {
-    await spawn('npm', ['run', 'build'], {
+    console.log('Building...')
+    await execa('npm', ['run', 'build'], {
       cwd: resolve(process.cwd(), 'packages/server'),
       stdio: 'inherit'
-    }).stdout
+    })
+    console.log('Done.')
   }
+  console.log('Zipping...')
   await promisify(
     merge(
       gulp.src(resolve(process.cwd(), 'packages/server/package.json'), {cwd: process.cwd()}),
@@ -53,6 +56,7 @@ async function zipLambda (argv) {
     )
       .pipe(zip('server.zip'))
       .pipe(gulp.dest(resolve(process.cwd(), 'packages/deployment/bundles/'))))
+  console.log('Done.')
 }
 
 const identity = (yargs) => yargs
