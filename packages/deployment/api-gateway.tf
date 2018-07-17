@@ -3,60 +3,36 @@ resource "aws_api_gateway_rest_api" "example" {
   description = "Terraform GraphQL Proof-Of-Concept"
 }
 
-resource "aws_api_gateway_resource" "graphql" {
-  rest_api_id = "${aws_api_gateway_rest_api.example.id}"
-  parent_id   = "${aws_api_gateway_rest_api.example.root_resource_id}"
-  path_part   = "graphql"
+locals {
+  lambda_integrations = [
+    "${module.example_lambda_resource.resource_id}",
+    "${module.graphql_lambda_resource.resource_id}",
+    "${module.graphiql_lambda_resource.resource_id}",
+  ]
 }
 
-resource "aws_api_gateway_resource" "graphiql" {
-  rest_api_id = "${aws_api_gateway_rest_api.example.id}"
-  parent_id   = "${aws_api_gateway_rest_api.example.root_resource_id}"
-  path_part   = "graphiql"
-}
-
-resource "aws_api_gateway_method" "graphql" {
-  rest_api_id   = "${aws_api_gateway_rest_api.example.id}"
-  resource_id   = "${aws_api_gateway_resource.graphql.id}"
-  http_method   = "POST"
-  authorization = "NONE"
-}
-
-resource "aws_api_gateway_method" "graphiql" {
-  rest_api_id   = "${aws_api_gateway_rest_api.example.id}"
-  resource_id   = "${aws_api_gateway_resource.graphiql.id}"
-  http_method   = "GET"
-  authorization = "NONE"
-}
-
-resource "aws_api_gateway_integration" "graphql" {
-  rest_api_id = "${aws_api_gateway_rest_api.example.id}"
-  resource_id = "${aws_api_gateway_method.graphql.resource_id}"
-  http_method = "${aws_api_gateway_method.graphql.http_method}"
-
-  integration_http_method = "POST"
-  type                    = "AWS_PROXY"
-  uri                     = "${aws_lambda_function.graphql.invoke_arn}"
-}
-
-resource "aws_api_gateway_integration" "graphiql" {
-  rest_api_id = "${aws_api_gateway_rest_api.example.id}"
-  resource_id = "${aws_api_gateway_method.graphiql.resource_id}"
-  http_method = "${aws_api_gateway_method.graphiql.http_method}"
-
-  integration_http_method = "POST"
-  type                    = "AWS_PROXY"
-  uri                     = "${aws_lambda_function.graphiql.invoke_arn}"
+resource "null_resource" "api_gateway_deployment_trigger" {
+  triggers = {
+    integrations = "${join(",", local.lambda_integrations)}"
+  }
 }
 
 resource "aws_api_gateway_deployment" "example" {
   depends_on = [
-    "aws_api_gateway_integration.graphql",
-    "aws_api_gateway_integration.graphiql",
+    "null_resource.api_gateway_deployment_trigger",
   ]
 
   rest_api_id = "${aws_api_gateway_rest_api.example.id}"
+  description = "${join(",", local.lambda_integrations)}"
   stage_name  = "test"
+
+  variables = {
+    integrations = "${join(",", local.lambda_integrations)}"
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_lambda_permission" "apigw_graphql" {

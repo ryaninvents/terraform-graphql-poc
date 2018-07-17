@@ -30,12 +30,19 @@ export const graphiql = server.graphiqlLambda({
 console.log('hello')
 
 export function handler (event, context, callback) {
+  console.log(JSON.stringify(event))
+  const details = {
+    resource: event.resource,
+    path: event.path,
+    headers: event.headers,
+    queryStringParameters: event.queryStringParameters
+  }
   const response = {
     statusCode: 200,
     headers: {
       'Content-Type': 'text/html; charset=utf-8'
     },
-    body: `<p>Hello world!</p><pre>${JSON.stringify({event}, null, 2)}</pre>`
+    body: `<p>Hello world!</p><pre>${JSON.stringify(details, null, 2)}</pre>`
   }
   callback(null, response)
 }
