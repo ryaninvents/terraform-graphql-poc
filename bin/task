@@ -95,5 +95,7 @@ yargonaut // eslint-disable-line no-unused-expressions
       }),
     zipLambda
   )
+  .demandCommand()
+  .recommendCommands()
   .help()
   .argv
