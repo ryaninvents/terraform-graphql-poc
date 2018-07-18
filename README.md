@@ -24,6 +24,7 @@ To deploy, you'll need to set some parameters.
 You're ready to deploy! Run the following commands:
 
 ```
+bin/task lambda:zip
 bin/task terraform init
 bin/task terraform apply
 ```
