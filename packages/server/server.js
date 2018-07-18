@@ -24,7 +24,7 @@ const schema = makeExecutableSchema({
 
 export const graphql = server.graphqlLambda({schema})
 export const graphiql = server.graphiqlLambda({
-  endpointURL: '/graphql'
+  endpointURL: `' + (document.location.pathname.indexOf('/test') === 0 ? '/test' : '') + '/graphql`
 })
 
 console.log('hello')
