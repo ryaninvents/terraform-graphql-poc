@@ -9,6 +9,16 @@ locals {
     "${module.graphql_lambda_resource.resource_id}",
     "${module.graphiql_lambda_resource.resource_id}",
   ]
+
+  lambda_source_hashes = [
+    "${aws_lambda_function.graphql.source_code_hash}",
+    "${aws_lambda_function.graphiql.source_code_hash}",
+    "${aws_lambda_function.example.source_code_hash}",
+  ]
+
+  lambda_source_hash = "${
+    base64sha256(join("|", local.lambda_source_hashes))
+  }"
 }
 
 resource "null_resource" "api_gateway_deployment_trigger" {
@@ -28,6 +38,7 @@ resource "aws_api_gateway_deployment" "example" {
 
   variables = {
     integrations = "${join(",", local.lambda_integrations)}"
+    source_hash  = "${local.lambda_source_hash}"
   }
 
   lifecycle {
