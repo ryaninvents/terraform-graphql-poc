@@ -38,7 +38,7 @@ resource "aws_api_gateway_deployment" "example" {
 
   variables = {
     integrations = "${join(",", local.lambda_integrations)}"
-    source_hash  = "${local.lambda_source_hash}"
+    source_hash  = "${replace(local.lambda_source_hash, "+", ".")}"
   }
 
   lifecycle {

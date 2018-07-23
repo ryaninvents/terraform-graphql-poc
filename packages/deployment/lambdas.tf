@@ -9,6 +9,12 @@ resource "aws_lambda_function" "graphql" {
 
   role    = "${aws_iam_role.lambda_exec.arn}"
   publish = true
+
+  environment {
+    variables = {
+      FRONTEND_ORIGIN = "https://${var.frontend_hostname}"
+    }
+  }
 }
 
 resource "aws_iam_role" "lambda_exec" {
@@ -121,4 +127,14 @@ module "graphql_lambda_resource" {
   rest_api_root_resource_id = "${aws_api_gateway_rest_api.example.root_resource_id}"
   resource_path_part        = "graphql"
   http_method               = "POST"
+}
+
+module "graphql_cors" {
+  source  = "mewa/apigateway-cors/aws"
+  version = "1.0.0"
+
+  api      = "${aws_api_gateway_rest_api.example.id}"
+  resource = "${module.graphql_lambda_resource.resource_id}"
+  origin   = "https://${var.frontend_hostname}"
+  methods  = ["POST"]
 }

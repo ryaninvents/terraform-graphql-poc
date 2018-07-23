@@ -9,3 +9,7 @@ variable "root_domain" {
 variable "subdomain" {
   description = "Desired subdomain; e.g. 'api' for 'api.example.com'"
 }
+
+variable "frontend_hostname" {
+  description = "Hostname where the frontend is deployed"
+}

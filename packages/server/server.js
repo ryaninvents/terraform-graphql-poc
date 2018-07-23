@@ -22,7 +22,30 @@ const schema = makeExecutableSchema({
   resolvers
 })
 
-export const graphql = server.graphqlLambda({schema})
+const graphqlHandler = server.graphqlLambda({schema})
+export const graphql = (event, context, callback) => {
+  const originMatch = event.headers.origin === process.env.FRONTEND_ORIGIN
+  console.log(JSON.stringify({
+    event,
+    context,
+    env: process.env,
+    originMatch,
+    acao: originMatch ? event.headers.FRONTEND_ORIGIN : 'no_match'
+  }))
+  graphqlHandler(event, context, (err, response) => {
+    if (err) {
+      callback(err)
+      return
+    }
+    callback(null, {
+      ...response,
+      headers: {
+        ...response.headers,
+        ...(originMatch ? {'Access-Control-Allow-Origin': event.headers.origin} : {})
+      }
+    })
+  })
+}
 export const graphiql = server.graphiqlLambda({
   endpointURL: `' + (document.location.pathname.indexOf('/test') === 0 ? '/test' : '') + '/graphql`
 })
