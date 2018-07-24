@@ -23,8 +23,11 @@
     "express": "^4.16.3",
     "graphql": "^0.13.2",
     "graphql-tools": "^3.0.5",
+    "hiredis": "^0.5.0",
+    "node-fetch": "^2.2.0",
     "passport": "^0.4.0",
     "passport-auth0": "^1.0.0",
+    "redis": "^2.8.0",
     "serverless-http": "^1.6.0"
   }
 }

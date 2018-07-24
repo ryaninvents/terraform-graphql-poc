@@ -1,5 +1,7 @@
 import * as server from 'apollo-server-lambda'
 import {makeExecutableSchema} from 'graphql-tools'
+import fetch from 'node-fetch'
+import redis from 'redis'
 
 // Construct a schema, using GraphQL schema language
 const typeDefs = `
@@ -50,22 +52,79 @@ export const graphiql = server.graphiqlLambda({
   endpointURL: `' + (document.location.pathname.indexOf('/test') === 0 ? '/test' : '') + '/graphql`
 })
 
-console.log('hello')
+export async function handler (event, context, callback) {
+  const client = redis.createClient({
+    host: process.env.REDIS_HOST,
+    port: Number(process.env.REDIS_PORT)
+  })
 
-export function handler (event, context, callback) {
-  console.log(JSON.stringify(event))
-  const details = {
-    resource: event.resource,
-    path: event.path,
-    headers: event.headers,
-    queryStringParameters: event.queryStringParameters
+  console.log({
+    host: process.env.REDIS_HOST,
+    port: process.env.REDIS_PORT
+  })
+
+  function setCache (key, val) {
+    return new Promise((resolve, reject) => {
+      client.set(key, val, (error, data) => {
+        if (error) {
+          console.log(error)
+          reject(error)
+          return
+        }
+        resolve(data)
+      })
+    })
   }
-  const response = {
-    statusCode: 200,
-    headers: {
-      'Content-Type': 'text/html; charset=utf-8'
-    },
-    body: `<p>Hello world!</p><pre>${JSON.stringify(details, null, 2)}</pre>`
+
+  function getCache (key) {
+    return new Promise((resolve, reject) => {
+      client.get(key, (error, data) => {
+        if (error) {
+          console.log(error)
+          reject(error)
+          return
+        }
+        if (!data) {
+          resolve(null)
+          return
+        }
+        resolve(data.toString())
+      })
+    })
   }
-  callback(null, response)
+
+  try {
+    const count = Number((await getCache('visitcount')) || 0)
+    console.log({count})
+    await setCache('visitcount', count + 1)
+
+    console.log(JSON.stringify(event))
+
+    const json = await (
+      await fetch('https://raw.githubusercontent.com/ryaninvents/ng-notable/master/package.json')
+    ).json()
+
+    console.log({json})
+
+    const details = {
+      visits: count + 1,
+      resource: event.resource,
+      path: event.path,
+      headers: event.headers,
+      queryStringParameters: event.queryStringParameters,
+      json
+    }
+    const response = {
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'text/html; charset=utf-8'
+      },
+      body: `<p>Hello world!</p><pre>${JSON.stringify(details, null, 2)}</pre>`
+    }
+    callback(null, response)
+  } catch (error) {
+    callback(error)
+  } finally {
+    client.quit()
+  }
 }

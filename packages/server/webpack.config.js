@@ -13,7 +13,14 @@ module.exports = {
         use: {
           loader: 'babel-loader',
           options: {
-            presets: ['@babel/preset-env']
+            presets: [
+              [
+                '@babel/preset-env',
+                {
+                  targets: {node: '8'}
+                }
+              ]
+            ]
           }
         },
         exclude: /node_modules/
@@ -21,7 +28,7 @@ module.exports = {
     ]
   },
   resolve: {
-    mainFields: ['browser', 'main', 'module'],
+    mainFields: ['main', 'module', 'browser'],
     extensions: ['.js']
   },
   target: 'node',

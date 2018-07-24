@@ -66,6 +66,11 @@ resource "aws_iam_role_policy_attachment" "lambda_cloudwatch" {
   policy_arn = "${aws_iam_policy.lambda_cloudwatch.arn}"
 }
 
+resource "aws_iam_role_policy_attachment" "vpc_access" {
+  role       = "${aws_iam_role.lambda_exec.name}"
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+}
+
 resource "aws_lambda_function" "example" {
   function_name = "${var.app_name}-example"
 
@@ -78,8 +83,25 @@ resource "aws_lambda_function" "example" {
   role    = "${aws_iam_role.lambda_exec.arn}"
   publish = true
 
+  timeout = 10
+
+  vpc_config = {
+    security_group_ids = [
+      "${data.aws_security_group.default.id}",
+    ]
+
+    subnet_ids = ["${data.aws_subnet_ids.private.ids}"]
+  }
+
   tags {
     App = "${var.app_name}"
+  }
+
+  environment {
+    variables = {
+      REDIS_HOST = "${aws_elasticache_cluster.cache.cache_nodes.0.address}"
+      REDIS_PORT = "${aws_elasticache_cluster.cache.cache_nodes.0.port}"
+    }
   }
 }
 
