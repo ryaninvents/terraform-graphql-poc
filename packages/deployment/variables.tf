@@ -13,3 +13,7 @@ variable "subdomain" {
 variable "frontend_hostname" {
   description = "Hostname where the frontend is deployed"
 }
+
+variable "app_name" {
+  description = "Application name; used to generate resource names and tags. Use hyphens, not underscores"
+}

@@ -1,5 +1,5 @@
 resource "aws_lambda_function" "graphql" {
-  function_name = "terraform-graphql-poc-graphql"
+  function_name = "${var.app_name}-graphql"
 
   filename         = "${path.module}/bundles/server.zip"
   source_code_hash = "${base64sha256(file("${path.module}/bundles/server.zip"))}"
@@ -15,10 +15,14 @@ resource "aws_lambda_function" "graphql" {
       FRONTEND_ORIGIN = "https://${var.frontend_hostname}"
     }
   }
+
+  tags {
+    App = "${var.app_name}"
+  }
 }
 
 resource "aws_iam_role" "lambda_exec" {
-  name = "serverless_example_lambda"
+  name = "${var.app_name}-lambda"
 
   assume_role_policy = <<EOF
 {
@@ -52,7 +56,7 @@ data "aws_iam_policy_document" "cloudwatch-log-group-lambda" {
 }
 
 resource "aws_iam_policy" "lambda_cloudwatch" {
-  name        = "terraform-graphql-poc"
+  name        = "${var.app_name}-lambda-cloudwatch"
   description = "Give Lambdas access to Cloudwatch"
   policy      = "${data.aws_iam_policy_document.cloudwatch-log-group-lambda.json}"
 }
@@ -63,7 +67,7 @@ resource "aws_iam_role_policy_attachment" "lambda_cloudwatch" {
 }
 
 resource "aws_lambda_function" "example" {
-  function_name = "terraform-graphql-poc-example"
+  function_name = "${var.app_name}-example"
 
   filename         = "${path.module}/bundles/server.zip"
   source_code_hash = "${base64sha256(file("${path.module}/bundles/server.zip"))}"
@@ -73,10 +77,14 @@ resource "aws_lambda_function" "example" {
 
   role    = "${aws_iam_role.lambda_exec.arn}"
   publish = true
+
+  tags {
+    App = "${var.app_name}"
+  }
 }
 
 resource "aws_lambda_function" "graphiql" {
-  function_name = "terraform-graphql-poc-graphiql"
+  function_name = "${var.app_name}-graphiql"
 
   filename         = "${path.module}/bundles/server.zip"
   source_code_hash = "${base64sha256(file("${path.module}/bundles/server.zip"))}"
@@ -86,6 +94,35 @@ resource "aws_lambda_function" "graphiql" {
 
   role    = "${aws_iam_role.lambda_exec.arn}"
   publish = true
+
+  tags {
+    App = "${var.app_name}"
+  }
+}
+
+resource "aws_lambda_function" "login" {
+  function_name = "${var.app_name}-login"
+
+  filename         = "${path.module}/bundles/auth.zip"
+  source_code_hash = "${base64sha256(file("${path.module}/bundles/auth.zip"))}"
+
+  handler = "index.login"
+  runtime = "nodejs8.10"
+
+  role    = "${aws_iam_role.lambda_exec.arn}"
+  publish = true
+
+  tags {
+    App = "${var.app_name}"
+  }
+
+  environment {
+    variables = {
+      AUTH0_DOMAIN        = "${data.aws_ssm_parameter.auth0_domain.value}"
+      AUTH0_CLIENT_ID     = "${data.aws_ssm_parameter.auth0_client_id.value}"
+      AUTH0_CLIENT_SECRET = "${data.aws_ssm_parameter.auth0_client_secret.value}"
+    }
+  }
 }
 
 resource "aws_lambda_permission" "apigw_example" {

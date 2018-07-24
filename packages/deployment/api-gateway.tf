@@ -1,5 +1,5 @@
 resource "aws_api_gateway_rest_api" "example" {
-  name        = "terraform-graphql-poc"
+  name        = "${var.app_name}"
   description = "Terraform GraphQL Proof-Of-Concept"
 }
 
