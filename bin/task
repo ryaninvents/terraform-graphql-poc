@@ -13,6 +13,7 @@ const pkg = require('../package.json')
 const {promisify} = require('../util/promisify')
 
 const DEPLOY_DIR = resolve(__dirname, '../packages/deployment')
+const WEB_DIR = resolve(__dirname, '../packages/web')
 
 const s3 = new AWS.S3({region: 'us-east-1'})
 
@@ -52,6 +53,15 @@ async function uploadSecrets (argv) {
       Body: terraformVars
     }).promise()
   ])
+}
+
+async function configFrontend () {
+  const json = JSON.parse((await execa(
+    'terraform', ['output', '--json'], {cwd: DEPLOY_DIR}
+  )).stdout)
+  writeFileSync(resolve(WEB_DIR, 'deployment-config.json'), JSON.stringify({
+    apiEndpoint: json.base_api_url.value
+  }))
 }
 
 async function zipLambda (argv) {
@@ -95,6 +105,7 @@ yargonaut // eslint-disable-line no-unused-expressions
       }),
     zipLambda
   )
+  .command('frontend:config', 'copy secrets to frontend after Terraform has run', identity, configFrontend)
   .demandCommand()
   .recommendCommands()
   .help()
