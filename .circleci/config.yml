@@ -24,6 +24,9 @@ jobs:
       - attach_workspace:
           at: .
       - run:
+          name: create mock config
+          command: bin/task frontend:config --mock
+      - run:
           name: test
           command: npm test
   build:

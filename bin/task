@@ -55,10 +55,21 @@ async function uploadSecrets (argv) {
   ])
 }
 
-async function configFrontend () {
-  const json = JSON.parse((await execa(
-    'terraform', ['output', '--json'], {cwd: DEPLOY_DIR}
-  )).stdout)
+async function configFrontend (argv) {
+  let json
+
+  if (argv.mock) {
+    json = {
+      base_api_url: {
+        value: 'https://api.example.net'
+      }
+    }
+  } else {
+    json = JSON.parse((await execa(
+      'terraform', ['output', '--json'], {cwd: DEPLOY_DIR}
+    )).stdout)
+  }
+
   writeFileSync(resolve(WEB_DIR, 'deployment-config.json'), JSON.stringify({
     apiEndpoint: json.base_api_url.value
   }))
@@ -105,7 +116,17 @@ yargonaut // eslint-disable-line no-unused-expressions
       }),
     zipLambda
   )
-  .command('frontend:config', 'copy secrets to frontend after Terraform has run', identity, configFrontend)
+  .command(
+    'frontend:config',
+    'copy secrets to frontend after Terraform has run',
+    (yargs) => yargs
+      .option('mock', {
+        type: 'boolean',
+        default: false,
+        desc: 'If true, use mock values (for testing)'
+      }),
+    configFrontend
+  )
   .demandCommand()
   .recommendCommands()
   .help()
