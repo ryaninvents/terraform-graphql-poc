@@ -10,23 +10,19 @@
     "dev": "preact watch",
     "lint": "eslint src"
   },
-  "eslintConfig": {
-    "extends": "eslint-config-kennship",
-    "rules": {
-      "react/react-in-jsx-scope": "off"
-    }
-  },
   "eslintIgnore": [
     "build/*"
   ],
   "devDependencies": {
     "eslint": "^4.5.0",
     "eslint-config-synacor": "^1.1.0",
+    "eslint-plugin-react": "^7.10.0",
     "if-env": "^1.0.0",
     "preact-cli": "^2.0.0"
   },
   "dependencies": {
     "preact": "^8.2.1",
-    "preact-compat": "^3.17.0"
+    "preact-compat": "^3.18.0",
+    "react-helmet": "^5.2.0"
   }
 }
