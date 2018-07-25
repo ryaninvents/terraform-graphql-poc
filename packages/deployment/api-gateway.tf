@@ -9,7 +9,6 @@ locals {
     "${module.graphql_lambda_resource.resource_id}",
     "${module.graphiql_lambda_resource.resource_id}",
     "${module.login_lambda_resource.resource_id}",
-    "${module.callback_lambda_resource.resource_id}",
   ]
 
   lambda_source_hashes = [
@@ -17,7 +16,6 @@ locals {
     "${aws_lambda_function.graphiql.source_code_hash}",
     "${aws_lambda_function.example.source_code_hash}",
     "${aws_lambda_function.login.source_code_hash}",
-    "${aws_lambda_function.callback.source_code_hash}",
   ]
 
   lambda_source_hash = "${
@@ -76,17 +74,6 @@ resource "aws_lambda_permission" "apigw_login" {
   statement_id  = "AllowAPIGatewayInvoke"
   action        = "lambda:InvokeFunction"
   function_name = "${aws_lambda_function.login.arn}"
-  principal     = "apigateway.amazonaws.com"
-
-  # The /*/* portion grants access from any method on any resource
-  # within the API Gateway "REST API".
-  source_arn = "${aws_api_gateway_rest_api.example.execution_arn}/*/*/*"
-}
-
-resource "aws_lambda_permission" "apigw_callback" {
-  statement_id  = "AllowAPIGatewayInvoke"
-  action        = "lambda:InvokeFunction"
-  function_name = "${aws_lambda_function.callback.arn}"
   principal     = "apigateway.amazonaws.com"
 
   # The /*/* portion grants access from any method on any resource
