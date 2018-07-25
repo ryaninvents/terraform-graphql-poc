@@ -26,14 +26,8 @@ const schema = makeExecutableSchema({
 
 const graphqlHandler = server.graphqlLambda({schema})
 export const graphql = (event, context, callback) => {
-  const originMatch = event.headers.origin === process.env.FRONTEND_ORIGIN
-  console.log(JSON.stringify({
-    event,
-    context,
-    env: process.env,
-    originMatch,
-    acao: originMatch ? event.headers.FRONTEND_ORIGIN : 'no_match'
-  }))
+  const originMatch = event.headers.origin === process.env.FRONTEND_ORIGIN || event.headers.origin === 'http://localhost:8080'
+
   graphqlHandler(event, context, (err, response) => {
     if (err) {
       callback(err)
@@ -43,7 +37,10 @@ export const graphql = (event, context, callback) => {
       ...response,
       headers: {
         ...response.headers,
-        ...(originMatch ? {'Access-Control-Allow-Origin': event.headers.origin} : {})
+        ...(originMatch ? {
+          'Access-Control-Allow-Origin': event.headers.origin,
+          'Access-Control-Allow-Credentials': 'true'
+        } : {})
       }
     })
   })
@@ -94,6 +91,8 @@ export async function handler (event, context, callback) {
   }
 
   try {
+    const originMatch = event.headers.origin === process.env.FRONTEND_ORIGIN || event.headers.origin === 'http://localhost:8080'
+
     const count = Number((await getCache('visitcount')) || 0)
     console.log({count})
     await setCache('visitcount', count + 1)
@@ -101,14 +100,6 @@ export async function handler (event, context, callback) {
     const json = await (
       await fetch('https://raw.githubusercontent.com/ryaninvents/ng-notable/master/package.json')
     ).json()
-
-    let sessionId
-    let sessionIdMatch = /session=([0-9a-f]+)/.exec(event.headers.Cookie)
-    if (sessionIdMatch) {
-      sessionId = sessionIdMatch[1]
-    } else {
-      sessionId = Math.random().toString(16).slice(2)
-    }
 
     const details = {
       visits: count + 1,
@@ -121,10 +112,13 @@ export async function handler (event, context, callback) {
     const response = {
       statusCode: 200,
       headers: {
-        'Content-Type': 'text/html; charset=utf-8',
-        'Set-Cookie': `session=${sessionId}; domain=ryaninvents.com; expires=${new Date().toISOString()}`
+        'Content-Type': 'application/json',
+        ...(originMatch ? {
+          'Access-Control-Allow-Origin': event.headers.origin,
+          'Access-Control-Allow-Credentials': 'true'
+        } : {})
       },
-      body: `<p>Hello world!</p><pre>${JSON.stringify(details, null, 2)}</pre>`
+      body: JSON.stringify(details, null, 2)
     }
     callback(null, response)
   } catch (error) {
