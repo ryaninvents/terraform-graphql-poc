@@ -81,10 +81,10 @@ resource "aws_lambda_permission" "apigw_login" {
   source_arn = "${aws_api_gateway_rest_api.example.execution_arn}/*/*/*"
 }
 
-output "base_url" {
-  value = "${aws_api_gateway_deployment.example.invoke_url}"
+output "base_api_url" {
+  value = "https://${local.api_hostname}"
 }
 
 output "graphiql_url" {
-  value = "${aws_api_gateway_deployment.example.invoke_url}/graphiql"
+  value = "https://${local.api_hostname}/graphiql"
 }
