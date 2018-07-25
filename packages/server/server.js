@@ -98,13 +98,17 @@ export async function handler (event, context, callback) {
     console.log({count})
     await setCache('visitcount', count + 1)
 
-    console.log(JSON.stringify(event))
-
     const json = await (
       await fetch('https://raw.githubusercontent.com/ryaninvents/ng-notable/master/package.json')
     ).json()
 
-    console.log({json})
+    let sessionId
+    let sessionIdMatch = /session=([0-9a-f]+)/.exec(event.headers.Cookie)
+    if (sessionIdMatch) {
+      sessionId = sessionIdMatch[1]
+    } else {
+      sessionId = Math.random().toString(16).slice(2)
+    }
 
     const details = {
       visits: count + 1,
@@ -117,7 +121,8 @@ export async function handler (event, context, callback) {
     const response = {
       statusCode: 200,
       headers: {
-        'Content-Type': 'text/html; charset=utf-8'
+        'Content-Type': 'text/html; charset=utf-8',
+        'Set-Cookie': `session=${sessionId}; domain=ryaninvents.com; expires=${new Date().toISOString()}`
       },
       body: `<p>Hello world!</p><pre>${JSON.stringify(details, null, 2)}</pre>`
     }

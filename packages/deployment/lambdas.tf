@@ -1,3 +1,8 @@
+locals {
+  api_hostname         = "${var.subdomain}.${var.root_domain}"
+  allowed_origin_hosts = "${var.frontend_hostname},${local.api_hostname}"
+}
+
 resource "aws_lambda_function" "graphql" {
   function_name = "${var.app_name}-graphql"
 
@@ -12,7 +17,8 @@ resource "aws_lambda_function" "graphql" {
 
   environment {
     variables = {
-      FRONTEND_ORIGIN = "https://${var.frontend_hostname}"
+      FRONTEND_ORIGIN      = "https://${var.frontend_hostname}"
+      ALLOWED_ORIGIN_HOSTS = "${local.allowed_origin_hosts}"
     }
   }
 
@@ -138,11 +144,62 @@ resource "aws_lambda_function" "login" {
     App = "${var.app_name}"
   }
 
+  vpc_config = {
+    security_group_ids = [
+      "${data.aws_security_group.default.id}",
+    ]
+
+    subnet_ids = ["${data.aws_subnet_ids.private.ids}"]
+  }
+
   environment {
     variables = {
       AUTH0_DOMAIN        = "${data.aws_ssm_parameter.auth0_domain.value}"
       AUTH0_CLIENT_ID     = "${data.aws_ssm_parameter.auth0_client_id.value}"
       AUTH0_CLIENT_SECRET = "${data.aws_ssm_parameter.auth0_client_secret.value}"
+      CALLBACK_URL        = "https://${local.api_hostname}/callback"
+      REDIS_HOST          = "${aws_elasticache_cluster.cache.cache_nodes.0.address}"
+      REDIS_PORT          = "${aws_elasticache_cluster.cache.cache_nodes.0.port}"
+      FRONTEND_ORIGIN     = "https://${var.frontend_hostname}"
+    }
+  }
+}
+
+resource "aws_lambda_function" "callback" {
+  function_name = "${var.app_name}-callback"
+
+  filename         = "${path.module}/bundles/auth.zip"
+  source_code_hash = "${base64sha256(file("${path.module}/bundles/auth.zip"))}"
+
+  handler = "index.callback"
+  runtime = "nodejs8.10"
+
+  role    = "${aws_iam_role.lambda_exec.arn}"
+  publish = true
+
+  timeout = 20
+
+  tags {
+    App = "${var.app_name}"
+  }
+
+  vpc_config = {
+    security_group_ids = [
+      "${data.aws_security_group.default.id}",
+    ]
+
+    subnet_ids = ["${data.aws_subnet_ids.private.ids}"]
+  }
+
+  environment {
+    variables = {
+      AUTH0_DOMAIN        = "${data.aws_ssm_parameter.auth0_domain.value}"
+      AUTH0_CLIENT_ID     = "${data.aws_ssm_parameter.auth0_client_id.value}"
+      AUTH0_CLIENT_SECRET = "${data.aws_ssm_parameter.auth0_client_secret.value}"
+      CALLBACK_URL        = "https://${local.api_hostname}/callback"
+      REDIS_HOST          = "${aws_elasticache_cluster.cache.cache_nodes.0.address}"
+      REDIS_PORT          = "${aws_elasticache_cluster.cache.cache_nodes.0.port}"
+      FRONTEND_ORIGIN     = "https://${var.frontend_hostname}${var.frontend_path}"
     }
   }
 }
@@ -186,6 +243,26 @@ module "graphql_lambda_resource" {
   rest_api_root_resource_id = "${aws_api_gateway_rest_api.example.root_resource_id}"
   resource_path_part        = "graphql"
   http_method               = "POST"
+}
+
+module "login_lambda_resource" {
+  source = "./api-endpoint"
+
+  lambda_invoke_arn         = "${aws_lambda_function.login.invoke_arn}"
+  rest_api_id               = "${aws_api_gateway_rest_api.example.id}"
+  rest_api_root_resource_id = "${aws_api_gateway_rest_api.example.root_resource_id}"
+  resource_path_part        = "login"
+  http_method               = "GET"
+}
+
+module "callback_lambda_resource" {
+  source = "./api-endpoint"
+
+  lambda_invoke_arn         = "${aws_lambda_function.callback.invoke_arn}"
+  rest_api_id               = "${aws_api_gateway_rest_api.example.id}"
+  rest_api_root_resource_id = "${aws_api_gateway_rest_api.example.root_resource_id}"
+  resource_path_part        = "callback"
+  http_method               = "GET"
 }
 
 module "graphql_cors" {

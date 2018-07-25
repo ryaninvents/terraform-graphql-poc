@@ -17,3 +17,8 @@ variable "frontend_hostname" {
 variable "app_name" {
   description = "Application name; used to generate resource names and tags. Use hyphens, not underscores"
 }
+
+variable "frontend_path" {
+  description = "Pathname of frontend deployment. Must start with a slash (/) if not empty"
+  default     = ""
+}
