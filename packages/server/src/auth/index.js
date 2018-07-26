@@ -18,16 +18,6 @@ app.use((...args) => {
     port: Number(process.env.REDIS_PORT)
   })
 
-  console.log('Starting Redis test')
-  store.client.ping('test payload', (err, data) => {
-    if (err) {
-      console.log('Redis test failure')
-      console.log(err)
-      return
-    }
-    console.log('Redis test success', data)
-  })
-
   res.on('finish', () => {
     store.client.quit()
   })
