@@ -77,45 +77,6 @@ resource "aws_iam_role_policy_attachment" "vpc_access" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
 }
 
-resource "aws_lambda_function" "example" {
-  function_name = "${var.app_name}-example"
-
-  filename         = "${path.module}/bundles/auth.zip"
-  source_code_hash = "${base64sha256(file("${path.module}/bundles/auth.zip"))}"
-
-  handler = "index.authorizer"
-  runtime = "nodejs8.10"
-
-  role    = "${aws_iam_role.lambda_exec.arn}"
-  publish = true
-
-  timeout = 10
-
-  vpc_config = {
-    security_group_ids = [
-      "${data.aws_security_group.default.id}",
-    ]
-
-    subnet_ids = ["${data.aws_subnet_ids.private.ids}"]
-  }
-
-  tags {
-    App = "${var.app_name}"
-  }
-
-  environment {
-    variables = {
-      AUTH0_DOMAIN        = "${data.aws_ssm_parameter.auth0_domain.value}"
-      AUTH0_CLIENT_ID     = "${data.aws_ssm_parameter.auth0_client_id.value}"
-      AUTH0_CLIENT_SECRET = "${data.aws_ssm_parameter.auth0_client_secret.value}"
-      CALLBACK_URL        = "https://${local.api_hostname}/login"
-      FRONTEND_ORIGIN     = "https://${var.frontend_hostname}"
-      REDIS_HOST          = "${aws_elasticache_cluster.cache.cache_nodes.0.address}"
-      REDIS_PORT          = "${aws_elasticache_cluster.cache.cache_nodes.0.port}"
-    }
-  }
-}
-
 resource "aws_lambda_function" "graphiql" {
   function_name = "${var.app_name}-graphiql"
 
@@ -171,27 +132,6 @@ resource "aws_lambda_function" "login" {
   }
 }
 
-resource "aws_lambda_permission" "apigw_example" {
-  statement_id  = "AllowAPIGatewayInvoke"
-  action        = "lambda:InvokeFunction"
-  function_name = "${aws_lambda_function.example.arn}"
-  principal     = "apigateway.amazonaws.com"
-
-  # The /*/* portion grants access from any method on any resource
-  # within the API Gateway "REST API".
-  source_arn = "${aws_api_gateway_rest_api.example.execution_arn}/*/*/*"
-}
-
-module "example_lambda_resource" {
-  source = "./api-endpoint"
-
-  lambda_invoke_arn         = "${aws_lambda_function.example.invoke_arn}"
-  rest_api_id               = "${aws_api_gateway_rest_api.example.id}"
-  rest_api_root_resource_id = "${aws_api_gateway_rest_api.example.root_resource_id}"
-  resource_path_part        = "example"
-  http_method               = "GET"
-}
-
 module "graphiql_lambda_resource" {
   source = "./api-endpoint"
 
@@ -210,6 +150,9 @@ module "graphql_lambda_resource" {
   rest_api_root_resource_id = "${aws_api_gateway_rest_api.example.root_resource_id}"
   resource_path_part        = "graphql"
   http_method               = "POST"
+
+  authorizer_id = "${aws_api_gateway_authorizer.authorizer.id}"
+  authorization = "CUSTOM"
 }
 
 module "login_lambda_resource" {

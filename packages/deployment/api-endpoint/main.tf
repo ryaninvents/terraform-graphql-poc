@@ -30,6 +30,10 @@ variable "authorization" {
   default = "NONE"
 }
 
+variable "authorizer_id" {
+  default = ""
+}
+
 # # Resources
 
 locals {
@@ -48,6 +52,7 @@ resource "aws_api_gateway_method" "method" {
   rest_api_id   = "${var.rest_api_id}"
   http_method   = "${var.http_method}"
   authorization = "${var.authorization}"
+  authorizer_id = "${var.authorizer_id}"
   resource_id   = "${aws_api_gateway_resource.resource.id}"
 }
 

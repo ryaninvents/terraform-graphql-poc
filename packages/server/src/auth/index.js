@@ -11,6 +11,7 @@ import ExpressRequest from 'serverless-http/lib/request'
 import ExpressResponse from 'serverless-http/lib/response'
 
 import './config'
+import {generateAllowPolicy} from './generatePolicy'
 
 const app = express()
 
@@ -67,24 +68,32 @@ export const login = serverless(app)
 const appHandler = getHandler(app)
 
 export async function authorizer (event, context, callback) {
-  const cleanEvent = cleanUpEvent(event)
+  try {
+    const cleanEvent = cleanUpEvent({...event})
+    cleanEvent.headers.Cookie = event.authorizationToken
+    console.log(JSON.stringify({what: 'authorizer', event, cleanEvent}))
 
-  const request = new ExpressRequest(cleanEvent, {})
-  await finishHttp(request, cleanEvent, context)
+    const request = new ExpressRequest(cleanEvent, {})
+    await finishHttp(request, cleanEvent, context)
 
-  const response = new ExpressResponse(request)
-  appHandler(request, response)
-  await finishHttp(response, event, context)
-  console.log(request.session && request.session.user)
+    const response = new ExpressResponse(request)
+    appHandler(request, response)
+    await finishHttp(response, event, context)
 
-  callback(null, {
-    statusCode: 200,
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      'session?': Boolean(request.session),
-      user: request.session && request.session.user
-    }, null, 2)
-  })
+    const user = request.session && request.session.user
+
+    const policy = generateAllowPolicy({
+      principalId: user ? user.id : 'anonymous',
+      resource: event.methodArn,
+      user
+    })
+
+    console.log(JSON.stringify({user, session: request.session, policy}))
+
+    callback(null, policy)
+  } catch (error) {
+    console.log('Critical error!')
+    console.log(error)
+    callback(new Error('Server error'))
+  }
 }

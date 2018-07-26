@@ -8,6 +8,8 @@ const typeDefs = `
   type Query {
     hello: String
     now: String
+    loggedIn: Boolean!
+    whoami: String
   }
 `
 
@@ -15,7 +17,9 @@ const typeDefs = `
 const resolvers = {
   Query: {
     hello: () => 'Hello world!',
-    now: () => new Date().toISOString()
+    now: () => new Date().toISOString(),
+    loggedIn: (obj, args, context) => Boolean(context.user),
+    whoami: (obj, args, context) => context.user ? context.user.displayName : null
   }
 }
 
@@ -24,8 +28,16 @@ const schema = makeExecutableSchema({
   resolvers
 })
 
-const graphqlHandler = server.graphqlLambda({schema})
+const graphqlHandler = server.graphqlLambda({
+  schema,
+  context: ({event, context}) => ({
+    event,
+    context,
+    user: event.requestContext.authorizer.userData ? JSON.parse(event.requestContext.authorizer.userData) : null
+  })
+})
 export const graphql = (event, context, callback) => {
+  console.log(JSON.stringify({event, context}))
   const originMatch = event.headers.origin === process.env.FRONTEND_ORIGIN || event.headers.origin === 'http://localhost:8080'
 
   graphqlHandler(event, context, (err, response) => {
