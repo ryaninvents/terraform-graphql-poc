@@ -70,7 +70,7 @@ async function configFrontend (argv) {
     )).stdout)
   }
 
-  writeFileSync(resolve(WEB_DIR, 'deployment-config.json'), JSON.stringify({
+  writeFileSync(resolve(WEB_DIR, 'src/deployment-config.json'), JSON.stringify({
     apiEndpoint: json.base_api_url.value
   }))
 }
@@ -86,7 +86,7 @@ async function zipLambda (argv) {
   }
   console.log('Zipping...')
 
-  await Promise.all(['server', 'auth'].map(
+  await Promise.all(['server', 'auth', 'cors'].map(
     (bundleName) => promisify(
       merge(
         gulp.src(resolve(process.cwd(), 'packages/server/package.json'), {cwd: process.cwd()}),
