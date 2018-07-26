@@ -4,7 +4,8 @@ const PERMITTED_HEADERS = [
   'Authorization',
   'X-Api-Key',
   'X-Amz-Security-Token',
-  'Cookie'
+  'cookie',
+  'user-agent'
 ].join(',')
 
 exports.cors = function cors (event, context, callback) {

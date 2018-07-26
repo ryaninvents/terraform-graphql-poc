@@ -6,7 +6,6 @@ resource "aws_api_gateway_rest_api" "example" {
 locals {
   lambda_integrations = [
     "${module.graphql_lambda_resource.resource_id}",
-    "${module.graphiql_lambda_resource.resource_id}",
     "${module.login_lambda_resource.resource_id}",
   ]
 

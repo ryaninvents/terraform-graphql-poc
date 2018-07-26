@@ -15,10 +15,26 @@ resource "aws_lambda_function" "graphql" {
   role    = "${aws_iam_role.lambda_exec.arn}"
   publish = true
 
+  vpc_config = {
+    security_group_ids = [
+      "${data.aws_security_group.default.id}",
+      "${data.aws_security_group.redis.id}",
+    ]
+
+    subnet_ids = ["${data.aws_subnet_ids.private.ids}"]
+  }
+
   environment {
     variables = {
       FRONTEND_ORIGIN      = "https://${var.frontend_hostname}"
+      AUTH0_DOMAIN         = "${data.aws_ssm_parameter.auth0_domain.value}"
+      AUTH0_CLIENT_ID      = "${data.aws_ssm_parameter.auth0_client_id.value}"
+      AUTH0_CLIENT_SECRET  = "${data.aws_ssm_parameter.auth0_client_secret.value}"
       ALLOWED_ORIGIN_HOSTS = "${local.allowed_origin_hosts}"
+      CALLBACK_URL         = "https://${local.api_hostname}/login"
+      REDIS_HOST           = "${aws_elasticache_cluster.cache.cache_nodes.0.address}"
+      REDIS_PORT           = "${aws_elasticache_cluster.cache.cache_nodes.0.port}"
+      FRONTEND_LOCATION    = "https://${var.frontend_hostname}${var.frontend_path}"
     }
   }
 
@@ -139,14 +155,16 @@ resource "aws_lambda_function" "login" {
   }
 }
 
-module "graphiql_lambda_resource" {
+module "graphiql_resource" {
   source = "./api-endpoint"
 
   lambda_invoke_arn         = "${aws_lambda_function.graphql.invoke_arn}"
   rest_api_id               = "${aws_api_gateway_rest_api.example.id}"
   rest_api_root_resource_id = "${aws_api_gateway_rest_api.example.root_resource_id}"
-  resource_path_part        = "graphiql"
+  resource_path_part        = "graphql"
   http_method               = "GET"
+  create_resource           = false
+  parent_resource_id        = "${module.graphql_lambda_resource.resource_id}"
 }
 
 module "graphql_lambda_resource" {
@@ -157,9 +175,6 @@ module "graphql_lambda_resource" {
   rest_api_root_resource_id = "${aws_api_gateway_rest_api.example.root_resource_id}"
   resource_path_part        = "graphql"
   http_method               = "POST"
-
-  authorizer_id = "${aws_api_gateway_authorizer.authorizer.id}"
-  authorization = "CUSTOM"
 }
 
 module "graphql_cors" {

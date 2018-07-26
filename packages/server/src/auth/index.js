@@ -57,7 +57,7 @@ function authenticate (req, res, next) {
     }
     console.log(user)
     req.session.user = user
-    res.redirect(process.env.FRONTEND_ORIGIN)
+    res.redirect(process.env.FRONTEND_LOCATION)
   })(req, res, next)
 }
 
@@ -67,20 +67,25 @@ export const login = serverless(app)
 
 const appHandler = getHandler(app)
 
+export async function getUser (event, context) {
+  const cleanEvent = cleanUpEvent({...event})
+
+  const request = new ExpressRequest(cleanEvent, {})
+  await finishHttp(request, cleanEvent, context)
+
+  const response = new ExpressResponse(request)
+  appHandler(request, response)
+  await finishHttp(response, event, context)
+
+  console.log(JSON.stringify({headers: request.headers, session: request.session}))
+  const user = request.session && request.session.user
+
+  return user || null
+}
+
 export async function authorizer (event, context, callback) {
   try {
-    const cleanEvent = cleanUpEvent({...event})
-    cleanEvent.headers.Cookie = event.authorizationToken
-    console.log(JSON.stringify({what: 'authorizer', event, cleanEvent}))
-
-    const request = new ExpressRequest(cleanEvent, {})
-    await finishHttp(request, cleanEvent, context)
-
-    const response = new ExpressResponse(request)
-    appHandler(request, response)
-    await finishHttp(response, event, context)
-
-    const user = request.session && request.session.user
+    const user = await getUser(event, context)
 
     const policy = generateAllowPolicy({
       principalId: user ? user.id : 'anonymous',
@@ -88,7 +93,7 @@ export async function authorizer (event, context, callback) {
       user
     })
 
-    console.log(JSON.stringify({user, session: request.session, policy}))
+    console.log(JSON.stringify({user, policy}))
 
     callback(null, policy)
   } catch (error) {

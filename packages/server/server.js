@@ -1,4 +1,5 @@
 import {ApolloServer} from 'apollo-server-lambda'
+import {getUser} from './src/auth'
 
 // Construct a schema, using GraphQL schema language
 const typeDefs = `
@@ -26,7 +27,7 @@ const graphqlHandler = new ApolloServer({
   context: ({event, context}) => ({
     event,
     context,
-    user: (event.requestContext && event.requestContext.authorizer && event.requestContext.authorizer.userData) ? JSON.parse(event.requestContext.authorizer.userData) : null
+    user: event.user
   })
 }).createHandler()
 
@@ -36,6 +37,9 @@ export const graphql = async (event, context, callback) => {
 
     const origin = event.headers.Origin || event.headers.origin || ''
     const originMatch = origin === process.env.FRONTEND_ORIGIN || origin.indexOf('http://localhost') === 0
+
+    event.user = await getUser(event, context)
+    console.log(JSON.stringify({user: event.user}))
 
     const response = await new Promise((resolve, reject) => {
       graphqlHandler(event, context, (err, response) => {
