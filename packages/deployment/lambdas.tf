@@ -80,10 +80,10 @@ resource "aws_iam_role_policy_attachment" "vpc_access" {
 resource "aws_lambda_function" "example" {
   function_name = "${var.app_name}-example"
 
-  filename         = "${path.module}/bundles/server.zip"
-  source_code_hash = "${base64sha256(file("${path.module}/bundles/server.zip"))}"
+  filename         = "${path.module}/bundles/auth.zip"
+  source_code_hash = "${base64sha256(file("${path.module}/bundles/auth.zip"))}"
 
-  handler = "index.handler"
+  handler = "index.authorizer"
   runtime = "nodejs8.10"
 
   role    = "${aws_iam_role.lambda_exec.arn}"
@@ -105,8 +105,13 @@ resource "aws_lambda_function" "example" {
 
   environment {
     variables = {
-      REDIS_HOST = "${aws_elasticache_cluster.cache.cache_nodes.0.address}"
-      REDIS_PORT = "${aws_elasticache_cluster.cache.cache_nodes.0.port}"
+      AUTH0_DOMAIN        = "${data.aws_ssm_parameter.auth0_domain.value}"
+      AUTH0_CLIENT_ID     = "${data.aws_ssm_parameter.auth0_client_id.value}"
+      AUTH0_CLIENT_SECRET = "${data.aws_ssm_parameter.auth0_client_secret.value}"
+      CALLBACK_URL        = "https://${local.api_hostname}/login"
+      FRONTEND_ORIGIN     = "https://${var.frontend_hostname}"
+      REDIS_HOST          = "${aws_elasticache_cluster.cache.cache_nodes.0.address}"
+      REDIS_PORT          = "${aws_elasticache_cluster.cache.cache_nodes.0.port}"
     }
   }
 }

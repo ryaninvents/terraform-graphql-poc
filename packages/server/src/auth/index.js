@@ -4,6 +4,12 @@ import serverless from 'serverless-http'
 import session from 'express-session'
 import createRedisStore from 'connect-redis'
 
+import getHandler from 'serverless-http/lib/get-handler'
+import cleanUpEvent from 'serverless-http/lib/clean-up-event'
+import finishHttp from 'serverless-http/lib/finish'
+import ExpressRequest from 'serverless-http/lib/request'
+import ExpressResponse from 'serverless-http/lib/response'
+
 import './config'
 
 const app = express()
@@ -57,3 +63,28 @@ function authenticate (req, res, next) {
 app.get('/login', authenticate)
 
 export const login = serverless(app)
+
+const appHandler = getHandler(app)
+
+export async function authorizer (event, context, callback) {
+  const cleanEvent = cleanUpEvent(event)
+
+  const request = new ExpressRequest(cleanEvent, {})
+  await finishHttp(request, cleanEvent, context)
+
+  const response = new ExpressResponse(request)
+  appHandler(request, response)
+  await finishHttp(response, event, context)
+  console.log(request.session && request.session.user)
+
+  callback(null, {
+    statusCode: 200,
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      'session?': Boolean(request.session),
+      user: request.session && request.session.user
+    }, null, 2)
+  })
+}
