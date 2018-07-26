@@ -3,11 +3,15 @@ import {getUser} from './src/auth'
 
 // Construct a schema, using GraphQL schema language
 const typeDefs = `
+  type Profile {
+    picture: String!
+    displayName: String!
+  }
   type Query {
     hello: String
     now: String
     loggedIn: Boolean!
-    whoami: String
+    whoami: Profile
   }
 `
 
@@ -17,7 +21,10 @@ const resolvers = {
     hello: () => 'Hello world!',
     now: () => new Date().toISOString(),
     loggedIn: (obj, args, context) => Boolean(context.user),
-    whoami: (obj, args, context) => context.user ? context.user.displayName : null
+    whoami: (obj, args, context) => context.user ? {
+      picture: context.user.picture,
+      displayName: context.user.displayName
+    } : null
   }
 }
 
