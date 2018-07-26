@@ -3,7 +3,6 @@ import passport from 'passport'
 import serverless from 'serverless-http'
 import session from 'express-session'
 import createRedisStore from 'connect-redis'
-import fetch from 'node-fetch'
 
 import './config'
 
