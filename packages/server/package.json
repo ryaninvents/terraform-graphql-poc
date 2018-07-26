@@ -19,7 +19,7 @@
     "webpack-cli": "^3.0.8"
   },
   "dependencies": {
-    "apollo-server-lambda": "^1.4.0",
+    "apollo-server-lambda": "^2.0.0",
     "connect-redis": "^3.3.3",
     "express": "^4.16.3",
     "express-session": "^1.15.6",

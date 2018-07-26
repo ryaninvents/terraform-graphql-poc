@@ -3,7 +3,8 @@ const path = require('path')
 module.exports = {
   entry: {
     server: './server.js',
-    auth: './auth.js'
+    auth: './auth.js',
+    cors: './cors.js'
   },
   mode: process.env.NODE_ENV || 'production',
   module: {

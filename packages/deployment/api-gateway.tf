@@ -12,7 +12,6 @@ locals {
 
   lambda_source_hashes = [
     "${aws_lambda_function.graphql.source_code_hash}",
-    "${aws_lambda_function.graphiql.source_code_hash}",
     "${aws_lambda_function.login.source_code_hash}",
   ]
 
@@ -57,10 +56,10 @@ resource "aws_lambda_permission" "apigw_graphql" {
   source_arn = "${aws_api_gateway_rest_api.example.execution_arn}/*/*/*"
 }
 
-resource "aws_lambda_permission" "apigw_graphiql" {
+resource "aws_lambda_permission" "apigw_login" {
   statement_id  = "AllowAPIGatewayInvoke"
   action        = "lambda:InvokeFunction"
-  function_name = "${aws_lambda_function.graphiql.arn}"
+  function_name = "${aws_lambda_function.login.arn}"
   principal     = "apigateway.amazonaws.com"
 
   # The /*/* portion grants access from any method on any resource
@@ -68,10 +67,10 @@ resource "aws_lambda_permission" "apigw_graphiql" {
   source_arn = "${aws_api_gateway_rest_api.example.execution_arn}/*/*/*"
 }
 
-resource "aws_lambda_permission" "apigw_login" {
+resource "aws_lambda_permission" "apigw_graphql_cors" {
   statement_id  = "AllowAPIGatewayInvoke"
   action        = "lambda:InvokeFunction"
-  function_name = "${aws_lambda_function.login.arn}"
+  function_name = "${aws_lambda_function.cors.arn}"
   principal     = "apigateway.amazonaws.com"
 
   # The /*/* portion grants access from any method on any resource

@@ -37,8 +37,13 @@ variable "authorizer_id" {
 # # Resources
 
 locals {
-  parent_resource_id   = "${var.parent_resource_id == "ATTACH_TO_ROOT" ? var.rest_api_root_resource_id : var.parent_resource_id}"
-  attached_resource_id = "${var.create_resource == true ? aws_api_gateway_resource.resource.id : local.parent_resource_id}"
+  parent_resource_id = "${var.parent_resource_id == "ATTACH_TO_ROOT" ? var.rest_api_root_resource_id : var.parent_resource_id}"
+
+  attached_resource_id = "${
+    var.create_resource == 1
+      ? element(concat(aws_api_gateway_resource.resource.*.id, list("")), 0)
+      : local.parent_resource_id
+  }"
 }
 
 resource "aws_api_gateway_resource" "resource" {
@@ -53,7 +58,7 @@ resource "aws_api_gateway_method" "method" {
   http_method   = "${var.http_method}"
   authorization = "${var.authorization}"
   authorizer_id = "${var.authorizer_id}"
-  resource_id   = "${aws_api_gateway_resource.resource.id}"
+  resource_id   = "${local.attached_resource_id}"
 }
 
 resource "aws_api_gateway_integration" "integration" {
@@ -67,5 +72,5 @@ resource "aws_api_gateway_integration" "integration" {
 }
 
 output "resource_id" {
-  value = "${var.create_resource == true ? aws_api_gateway_resource.resource.0.id : local.parent_resource_id}"
+  value = "${local.attached_resource_id}"
 }

@@ -1,7 +1,4 @@
-import * as server from 'apollo-server-lambda'
-import {makeExecutableSchema} from 'graphql-tools'
-import fetch from 'node-fetch'
-import redis from 'redis'
+import {ApolloServer} from 'apollo-server-lambda'
 
 // Construct a schema, using GraphQL schema language
 const typeDefs = `
@@ -23,28 +20,31 @@ const resolvers = {
   }
 }
 
-const schema = makeExecutableSchema({
+const graphqlHandler = new ApolloServer({
   typeDefs,
-  resolvers
-})
-
-const graphqlHandler = server.graphqlLambda({
-  schema,
+  resolvers,
   context: ({event, context}) => ({
     event,
     context,
     user: event.requestContext.authorizer.userData ? JSON.parse(event.requestContext.authorizer.userData) : null
   })
-})
-export const graphql = (event, context, callback) => {
-  console.log(JSON.stringify({event, context}))
-  const originMatch = event.headers.origin === process.env.FRONTEND_ORIGIN || event.headers.origin === 'http://localhost:8080'
+}).createHandler()
 
-  graphqlHandler(event, context, (err, response) => {
-    if (err) {
-      callback(err)
-      return
-    }
+export const graphql = async (event, context, callback) => {
+  try {
+    console.log(JSON.stringify({event, context}))
+    const originMatch = event.headers.origin === process.env.FRONTEND_ORIGIN || event.headers.origin.indexOf('http://localhost') === 0
+
+    const response = await new Promise((resolve, reject) => {
+      graphqlHandler(event, context, (err, response) => {
+        if (err) {
+          reject(err)
+          return
+        }
+        resolve(response)
+      })
+    })
+
     callback(null, {
       ...response,
       headers: {
@@ -55,87 +55,8 @@ export const graphql = (event, context, callback) => {
         } : {})
       }
     })
-  })
-}
-export const graphiql = server.graphiqlLambda({
-  endpointURL: `' + (document.location.pathname.indexOf('/test') === 0 ? '/test' : '') + '/graphql`
-})
-
-export async function handler (event, context, callback) {
-  const client = redis.createClient({
-    host: process.env.REDIS_HOST,
-    port: Number(process.env.REDIS_PORT)
-  })
-
-  console.log({
-    host: process.env.REDIS_HOST,
-    port: process.env.REDIS_PORT
-  })
-
-  function setCache (key, val) {
-    return new Promise((resolve, reject) => {
-      client.set(key, val, (error, data) => {
-        if (error) {
-          console.log(error)
-          reject(error)
-          return
-        }
-        resolve(data)
-      })
-    })
-  }
-
-  function getCache (key) {
-    return new Promise((resolve, reject) => {
-      client.get(key, (error, data) => {
-        if (error) {
-          console.log(error)
-          reject(error)
-          return
-        }
-        if (!data) {
-          resolve(null)
-          return
-        }
-        resolve(data.toString())
-      })
-    })
-  }
-
-  try {
-    const originMatch = event.headers.origin === process.env.FRONTEND_ORIGIN || event.headers.origin === 'http://localhost:8080'
-
-    const count = Number((await getCache('visitcount')) || 0)
-    console.log({count})
-    await setCache('visitcount', count + 1)
-
-    const json = await (
-      await fetch('https://raw.githubusercontent.com/ryaninvents/ng-notable/master/package.json')
-    ).json()
-
-    const details = {
-      visits: count + 1,
-      resource: event.resource,
-      path: event.path,
-      headers: event.headers,
-      queryStringParameters: event.queryStringParameters,
-      json
-    }
-    const response = {
-      statusCode: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(originMatch ? {
-          'Access-Control-Allow-Origin': event.headers.origin,
-          'Access-Control-Allow-Credentials': 'true'
-        } : {})
-      },
-      body: JSON.stringify(details, null, 2)
-    }
-    callback(null, response)
   } catch (error) {
+    console.log(error)
     callback(error)
-  } finally {
-    client.quit()
   }
 }

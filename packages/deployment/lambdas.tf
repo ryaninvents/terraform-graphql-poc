@@ -27,6 +27,30 @@ resource "aws_lambda_function" "graphql" {
   }
 }
 
+resource "aws_lambda_function" "cors" {
+  function_name = "${var.app_name}-cors"
+
+  filename         = "${path.module}/bundles/cors.zip"
+  source_code_hash = "${base64sha256(file("${path.module}/bundles/cors.zip"))}"
+
+  handler = "index.cors"
+  runtime = "nodejs8.10"
+
+  role    = "${aws_iam_role.lambda_exec.arn}"
+  publish = true
+
+  environment {
+    variables = {
+      FRONTEND_ORIGIN      = "https://${var.frontend_hostname}"
+      ALLOWED_ORIGIN_HOSTS = "${local.allowed_origin_hosts}"
+    }
+  }
+
+  tags {
+    App = "${var.app_name}"
+  }
+}
+
 resource "aws_iam_role" "lambda_exec" {
   name = "${var.app_name}-lambda"
 
@@ -77,23 +101,6 @@ resource "aws_iam_role_policy_attachment" "vpc_access" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
 }
 
-resource "aws_lambda_function" "graphiql" {
-  function_name = "${var.app_name}-graphiql"
-
-  filename         = "${path.module}/bundles/server.zip"
-  source_code_hash = "${base64sha256(file("${path.module}/bundles/server.zip"))}"
-
-  handler = "index.graphiql"
-  runtime = "nodejs8.10"
-
-  role    = "${aws_iam_role.lambda_exec.arn}"
-  publish = true
-
-  tags {
-    App = "${var.app_name}"
-  }
-}
-
 resource "aws_lambda_function" "login" {
   function_name = "${var.app_name}-login"
 
@@ -135,7 +142,7 @@ resource "aws_lambda_function" "login" {
 module "graphiql_lambda_resource" {
   source = "./api-endpoint"
 
-  lambda_invoke_arn         = "${aws_lambda_function.graphiql.invoke_arn}"
+  lambda_invoke_arn         = "${aws_lambda_function.graphql.invoke_arn}"
   rest_api_id               = "${aws_api_gateway_rest_api.example.id}"
   rest_api_root_resource_id = "${aws_api_gateway_rest_api.example.root_resource_id}"
   resource_path_part        = "graphiql"
@@ -155,6 +162,18 @@ module "graphql_lambda_resource" {
   authorization = "CUSTOM"
 }
 
+module "graphql_cors" {
+  source = "./api-endpoint"
+
+  lambda_invoke_arn         = "${aws_lambda_function.cors.invoke_arn}"
+  rest_api_id               = "${aws_api_gateway_rest_api.example.id}"
+  rest_api_root_resource_id = "${aws_api_gateway_rest_api.example.root_resource_id}"
+  create_resource           = false
+  parent_resource_id        = "${module.graphql_lambda_resource.resource_id}"
+  resource_path_part        = "graphql"
+  http_method               = "OPTIONS"
+}
+
 module "login_lambda_resource" {
   source = "./api-endpoint"
 
@@ -163,14 +182,4 @@ module "login_lambda_resource" {
   rest_api_root_resource_id = "${aws_api_gateway_rest_api.example.root_resource_id}"
   resource_path_part        = "login"
   http_method               = "GET"
-}
-
-module "graphql_cors" {
-  source  = "mewa/apigateway-cors/aws"
-  version = "1.0.0"
-
-  api      = "${aws_api_gateway_rest_api.example.id}"
-  resource = "${module.graphql_lambda_resource.resource_id}"
-  origin   = "https://${var.frontend_hostname}"
-  methods  = ["POST"]
 }
