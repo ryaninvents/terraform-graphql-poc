@@ -19,6 +19,13 @@ async function graphQlFetcher (graphQLParams) {
   return response.json()
 }
 
+// Unfortunately, the CodeMirror instance embedded in GraphiQL uses
+// CSS to lay itself out. We don't load the CSS for GraphiQL until
+// it's needed; what this means is that React renders GraphiQL before
+// the browser has loaded the CSS for it.
+//
+// UGLY HACK: use `react-loadable` to set a timeout, to allow the CSS
+// to load before GraphiQL mounts.
 const LoadableGraphiQL = Loadable({
   loader: () => new Promise((resolve) => {
     setTimeout(() => {
